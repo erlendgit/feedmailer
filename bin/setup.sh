@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+if [[ -z $(python --version) ]]; then
+  echo "python executable not found"
+  exit 1
+fi
+
 if [[ ! -d venv ]]; then
   python -m venv venv
   source venv/bin/activate
