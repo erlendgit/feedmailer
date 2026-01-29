@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
-bin/setup.sh
+ORIGINAL_DIR="$(pwd)"
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-venv/bin/python main.py "$@"
+cd "$SCRIPT_DIR"
+./bin/setup.sh
+
+cd "$ORIGINAL_DIR"
+"$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/main.py" "$@"
