@@ -7,4 +7,4 @@ cd "$SCRIPT_DIR"
 ./bin/setup.sh
 
 cd "$ORIGINAL_DIR"
-"$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/main.py" "$@"
+"$SCRIPT_DIR/venv/bin/python3" "$SCRIPT_DIR/main.py" "$@"
