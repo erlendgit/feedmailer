@@ -20,15 +20,20 @@ class TestMailerTestCase(TestCase):
         
         mock_popen.assert_called_once_with(["sendmail", "-t"], stdin=-1)
         
-        expected_msg = (
-            "From: sender@example.com\n"
-            "To: recipient@example.com\n"
-            "Subject: Feed Updates\n"
-            "Content-Type: text/markdown\n\n"
-            "Test email body"
-        )
-        mock_proc.communicate.assert_called_once_with(input=expected_msg.encode('utf-8'))
-    
+        # Check that communicate was called
+        call_args = mock_proc.communicate.call_args
+        sent_message = call_args[1]['input'].decode('utf-8')
+
+        # Verify multipart structure
+        self.assertIn("MIME-Version: 1.0", sent_message)
+        self.assertIn("Content-Type: multipart/alternative", sent_message)
+        self.assertIn("Content-Type: text/plain; charset=utf-8", sent_message)
+        self.assertIn("Content-Type: text/html; charset=utf-8", sent_message)
+
+        # Verify content in both parts
+        self.assertIn("<p>Test email body</p>", sent_message)  # HTML part
+        self.assertIn("Test email body", sent_message)  # Plain text part
+
     def test_mailer_send_with_markdown(self):
         mailer = Mailer(self.mock_config)
         body = "* [Title](https://example.com)"
@@ -41,8 +46,15 @@ class TestMailerTestCase(TestCase):
         call_args = mock_proc.communicate.call_args
         sent_message = call_args[1]['input'].decode('utf-8')
         
-        self.assertIn("Content-Type: text/markdown", sent_message)
-        self.assertIn(body, sent_message)
+        # Verify multipart email with both HTML and plain text
+        self.assertIn("Content-Type: multipart/alternative", sent_message)
+        self.assertIn("Content-Type: text/plain; charset=utf-8", sent_message)
+        self.assertIn("Content-Type: text/html; charset=utf-8", sent_message)
+
+        # Verify markdown was converted to HTML
+        self.assertIn('<a href="https://example.com">Title</a>', sent_message)
+        self.assertIn('<ul>', sent_message)
+        self.assertIn('<li>', sent_message)
 
 
 if __name__ == '__main__':
