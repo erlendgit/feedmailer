@@ -32,7 +32,6 @@ class Mailer:
         msg += html_body + "\n\n"
 
         msg += f"--{boundary}--\n"
-        print(msg)
 
         proc = subprocess.Popen(["sendmail", "-t"], stdin=subprocess.PIPE)
         proc.communicate(input=msg.encode('utf-8'))

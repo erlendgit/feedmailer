@@ -11,13 +11,14 @@ class TestMailerTestCase(TestCase):
     
     def test_mailer_send(self):
         mailer = Mailer(self.mock_config)
-        body = "Test email body"
-        
+        html_body = "<p>Test email body</p>"
+        text_body = "Test email body"
+
         mock_proc = mock.MagicMock()
         
         with mock.patch('subprocess.Popen', return_value=mock_proc) as mock_popen:
-            mailer.send(body)
-        
+            mailer.send(html_body, text_body)
+
         mock_popen.assert_called_once_with(["sendmail", "-t"], stdin=-1)
         
         # Check that communicate was called
@@ -34,15 +35,16 @@ class TestMailerTestCase(TestCase):
         self.assertIn("<p>Test email body</p>", sent_message)  # HTML part
         self.assertIn("Test email body", sent_message)  # Plain text part
 
-    def test_mailer_send_with_markdown(self):
+    def test_mailer_send_with_list(self):
         mailer = Mailer(self.mock_config)
-        body = "* [Title](https://example.com)"
-        
+        html_body = '<ul><li><a href="https://example.com">Title</a></li></ul>'
+        text_body = "* Title\n  https://example.com"
+
         mock_proc = mock.MagicMock()
         
         with mock.patch('subprocess.Popen', return_value=mock_proc):
-            mailer.send(body)
-        
+            mailer.send(html_body, text_body)
+
         call_args = mock_proc.communicate.call_args
         sent_message = call_args[1]['input'].decode('utf-8')
         
@@ -51,7 +53,7 @@ class TestMailerTestCase(TestCase):
         self.assertIn("Content-Type: text/plain; charset=utf-8", sent_message)
         self.assertIn("Content-Type: text/html; charset=utf-8", sent_message)
 
-        # Verify markdown was converted to HTML
+        # Verify HTML content
         self.assertIn('<a href="https://example.com">Title</a>', sent_message)
         self.assertIn('<ul>', sent_message)
         self.assertIn('<li>', sent_message)

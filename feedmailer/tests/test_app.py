@@ -35,7 +35,8 @@ class TestAppTestCase(TestCase):
         mock_entry = mock.Mock(link="https://example.com/1")
         mock_processor.found = [mock_entry]
         mock_processor.collect.return_value = [mock_entry]
-        mock_processor.as_markdown.return_value = "* [Title](https://example.com/1)"
+        mock_processor.as_html.return_value = "<html><body><ul><li><a href='https://example.com/1'>Title</a></li></ul></body></html>"
+        mock_processor.as_text.return_value = "* Title\n  https://example.com/1"
         mock_processor_class.return_value = mock_processor
         
         mock_mailer = mock.Mock()
@@ -45,7 +46,10 @@ class TestAppTestCase(TestCase):
         app.run()
         
         mock_processor.collect.assert_called_once()
-        mock_mailer.send.assert_called_once_with("* [Title](https://example.com/1)")
+        mock_mailer.send.assert_called_once_with(
+            "<html><body><ul><li><a href='https://example.com/1'>Title</a></li></ul></body></html>",
+            "* Title\n  https://example.com/1"
+        )
         mock_storage.save.assert_called_once()
     
     @mock.patch('feedmailer.app.Mailer')
