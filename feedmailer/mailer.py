@@ -1,43 +1,17 @@
 import subprocess
-import markdown
-from html.parser import HTMLParser
-
-
-class HTMLToText(HTMLParser):
-    """Simple HTML to plain text converter."""
-    def __init__(self):
-        super().__init__()
-        self.text = []
-
-    def handle_data(self, data):
-        self.text.append(data)
-
-    def get_text(self):
-        return ''.join(self.text)
 
 
 class Mailer:
     def __init__(self, config):
         self.config = config
 
-    def _markdown_to_html(self, markdown_text):
-        """Convert markdown to HTML."""
-        return markdown.markdown(markdown_text)
+    def send(self, html_body, text_body):
+        """Send email with both HTML and plain text versions.
 
-    def _html_to_text(self, html_text):
-        """Convert HTML to plain text."""
-        parser = HTMLToText()
-        parser.feed(html_text)
-        return parser.get_text()
-
-    def send(self, body):
-        # Generate HTML from markdown
-        html_body = self._markdown_to_html(body)
-
-        # Generate plain text from HTML (better than from markdown)
-        # But also keep original markdown as fallback
-        text_body = self._html_to_text(html_body)
-
+        Args:
+            html_body: HTML version of the email
+            text_body: Plain text version of the email
+        """
         # Create multipart email with boundary
         boundary = "===============FeedMailer==============="
 
@@ -58,6 +32,7 @@ class Mailer:
         msg += html_body + "\n\n"
 
         msg += f"--{boundary}--\n"
+        print(msg)
 
         proc = subprocess.Popen(["sendmail", "-t"], stdin=subprocess.PIPE)
         proc.communicate(input=msg.encode('utf-8'))

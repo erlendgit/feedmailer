@@ -1,0 +1,14 @@
+Feed Updates
+============
+
+{% for feed in feeds %}{{ feed.name }}
+{{ "-" * feed.name|length }}
+{% for entry in feed.entries %}* {{ entry.title }}
+  {{ entry.link }}
+
+{% endfor %}{% endfor %}
+{% if zero_links %}### Zero links
+{% for msg in zero_links %}{{ msg }}
+{% endfor %}
+{% endif %}
+

@@ -22,7 +22,7 @@ class App:
     def run(self):
         processor = FeedProcessor(self.config, self.seen)
         if processor.collect():
-            Mailer(self.config).send(processor.as_markdown())
+            Mailer(self.config).send(processor.as_html(), processor.as_text())
             self._update_state(processor)
 
     def _update_state(self, processor):
