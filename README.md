@@ -9,7 +9,8 @@ Feedmailer checks configured RSS/Atom feeds for new items and automatically send
 ## Requirements
 
 - Python 3.x
-- `sendmail` installed and configured on the system
+- `sendmail` installed and configured (if using sendmail backend)
+- Or access to an SMTP server (if using SMTP backend)
 
 ## Installation
 
@@ -31,7 +32,11 @@ Or use the included setup script:
 
 ## Configuration
 
-Create a JSON configuration file with the following structure:
+Create a JSON configuration file. See example configurations:
+- `config.example.sendmail.json` - For local sendmail
+- `config.example.smtp.json` - For SMTP servers
+
+### Basic Configuration (Sendmail)
 
 ```json
 {
@@ -40,7 +45,29 @@ Create a JSON configuration file with the following structure:
     "https://another-blog.com/rss"
   ],
   "from": "feedmailer@example.com",
-  "to": "recipient@example.com"
+  "to": "recipient@example.com",
+  "mail_backend": "sendmail"
+}
+```
+
+### SMTP Configuration
+
+```json
+{
+  "urls": [
+    "https://example.com/feed.xml",
+    "https://another-blog.com/rss"
+  ],
+  "from": "feedmailer@example.com",
+  "to": "recipient@example.com",
+  "mail_backend": "smtp",
+  "smtp": {
+    "host": "smtp.gmail.com",
+    "port": 587,
+    "username": "your-email@gmail.com",
+    "password": "your-app-password",
+    "use_tls": true
+  }
 }
 ```
 
@@ -49,6 +76,15 @@ Create a JSON configuration file with the following structure:
 - `urls`: List of RSS/Atom feed URLs to monitor
 - `from`: Sender email address
 - `to`: Recipient email address
+- `mail_backend`: (optional) `"sendmail"` (default) or `"smtp"`
+- `smtp`: (optional) SMTP server configuration (only needed if `mail_backend` is `"smtp"`)
+  - `host`: SMTP server hostname
+  - `port`: SMTP server port (default: 587)
+  - `username`: SMTP username (optional)
+  - `password`: SMTP password (optional)
+  - `use_tls`: Use TLS encryption (default: true)
+
+**📖 For detailed mail backend configuration, see [MAIL_BACKENDS.md](MAIL_BACKENDS.md)**
 
 ## Usage
 

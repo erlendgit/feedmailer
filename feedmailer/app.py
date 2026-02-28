@@ -1,9 +1,9 @@
 import argparse
 
 from feedmailer.config import Config
-from feedmailer.storage import Storage
 from feedmailer.feed_processor import FeedProcessor
 from feedmailer.mailer import Mailer
+from feedmailer.storage import Storage
 
 
 class App:
