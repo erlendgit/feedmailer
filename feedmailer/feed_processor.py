@@ -1,8 +1,9 @@
 import asyncio
+import os
+
+import aiohttp
 import feedparser
 from jinja2 import Environment, FileSystemLoader, select_autoescape
-import os
-import aiohttp
 
 
 class FeedProcessor:
@@ -10,22 +11,21 @@ class FeedProcessor:
         self.config = config
         self.seen_links = seen_links
         self.found = []
-        self.context = {
-            "feeds": [],
-            "zero_links": []
-        }
+        self.context = {"feeds": [], "zero_links": []}
 
         # Setup Jinja2 environment
-        template_dir = os.path.join(os.path.dirname(__file__), 'templates')
+        template_dir = os.path.join(os.path.dirname(__file__), "templates")
         self.jinja_env = Environment(
             loader=FileSystemLoader(template_dir),
-            autoescape=select_autoescape(['html', 'xml'])
+            autoescape=select_autoescape(["html", "xml"]),
         )
 
     async def _fetch_feed(self, session, url):
         """Fetch and parse a single feed asynchronously."""
         try:
-            async with session.get(url, timeout=aiohttp.ClientTimeout(total=30)) as resp:
+            async with session.get(
+                url, timeout=aiohttp.ClientTimeout(total=30)
+            ) as resp:
                 content = await resp.text()
                 # feedparser.parse can handle string content
                 response = feedparser.parse(content)
@@ -39,16 +39,9 @@ class FeedProcessor:
                 if not new:
                     return None
 
-                return {
-                    "url": url,
-                    "feed_title": response.feed.title,
-                    "entries": new
-                }
+                return {"url": url, "feed_title": response.feed.title, "entries": new}
         except Exception as e:
-            return {
-                "url": url,
-                "error": str(e)
-            }
+            return {"url": url, "error": str(e)}
 
     async def collect_async(self):
         """Collect feeds asynchronously in parallel."""
@@ -62,25 +55,24 @@ class FeedProcessor:
                 continue
             elif "error" in result:
                 # Error occurred
-                self.context['zero_links'].append(f"{result['url']}: {result['error']}")
+                self.context["zero_links"].append(f"{result['url']}: {result['error']}")
             else:
                 # Success
-                self.found.extend(result['entries'])
-                self.context['feeds'].append({
-                    "name": result['feed_title'],
-                    "entries": result['entries']
-                })
+                self.found.extend(result["entries"])
+                self.context["feeds"].append(
+                    {"name": result["feed_title"], "entries": result["entries"]}
+                )
 
-        return self.found or self.context['zero_links']
+        return self.found or self.context["zero_links"]
 
     def collect(self):
         """Synchronous wrapper for collect_async to maintain backward compatibility."""
         return asyncio.run(self.collect_async())
 
     def as_html(self):
-        template = self.jinja_env.get_template('email/overview.html')
+        template = self.jinja_env.get_template("email/overview.html")
         return template.render(**self.context)
 
     def as_text(self):
-        template = self.jinja_env.get_template('email/overview.txt')
+        template = self.jinja_env.get_template("email/overview.txt")
         return template.render(**self.context)
