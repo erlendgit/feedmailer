@@ -1,0 +1,54 @@
+[tool.ruff]
+# https://docs.astral.sh/ruff/configuration/
+# https://docs.astral.sh/ruff/rules/
+target-version = "py310"
+line-length = 88
+show-fixes = true
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.ruff.lint]
+ignore = [
+    "E501", # line-too-long
+    "B904", # raise-without-from-inside-except
+    "RUF015", # Completly normal programming practice.
+    "B008", # Django-ninja suggests to work in such a way. This is not a problem in the real world.
+]
+select = [
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "C90",  # mccabe
+    "E",    # pycodestyle
+    "EM",   # flake8-errmsg
+    "F",    # Pyflakes
+    "G",    # flake8-logging-format
+    "I",    # isort
+    # Start Ruff-specific rules:
+    "RUF005", # collection-literal-concatenation
+    "RUF015", # unnecessary-iterable-allocation-for-first-element
+    "RUF019", # unnecessary-key-check
+    "RUF021", # parenthesize-chained-operators
+    "RUF022", # unsorted-dunder-all
+    "RUF100", # unused-noqa
+    # End Ruff-specific rules.
+    # Start flake8-simplify rules:
+    "SIM201", # negate-equal-op
+    "SIM210", # if-expr-with-true-false
+    "SIM300", # yoda-conditions
+    "SIM910", # dict-get-with-none-default
+    # End flake8-simplify rules.
+    "TCH",  # flake8-type-checking
+    "W",    # pycodestyle
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/__init__.py" = [
+    "F401", # unused-import
+]
+"**/migrations/*" = [
+	"E501", # line-too-long
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10

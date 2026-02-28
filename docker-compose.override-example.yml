@@ -1,0 +1,5 @@
+services:
+  mailcatcher:
+    ports:
+      - 4080:1080
+      - 4025:1025
