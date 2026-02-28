@@ -9,12 +9,7 @@ class Config:
         self.sender = self.data.get("from")
         self.recipient = self.data.get("to")
 
-        # Mail backend configuration
-        self.mail_backend = self.data.get(
-            "mail_backend", "sendmail"
-        )  # 'sendmail' or 'smtp'
-
-        # SMTP settings (optional, only used if mail_backend == 'smtp')
+        self.mail_backend = self.data.get("mail_backend", "sendmail")
         smtp_config = self.data.get("smtp", {})
         self.smtp_host = smtp_config.get("host", "localhost")
         self.smtp_port = smtp_config.get("port", 587)
