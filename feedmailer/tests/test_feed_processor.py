@@ -1,5 +1,37 @@
 from unittest import TestCase, mock
 from feedmailer.feed_processor import FeedProcessor
+from unittest.mock import AsyncMock, MagicMock, patch
+from functools import wraps
+
+
+def mock_aiohttp_session(func):
+    """Decorator to automatically mock aiohttp session for tests."""
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        # Create mock session that can be used in async context
+        mock_session = MagicMock()
+
+        # Create a function that returns a new mock response each time
+        # Store the URL for use by feedparser.parse mock
+        urls_requested = []
+
+        def create_mock_resp(url, *req_args, **req_kwargs):
+            urls_requested.append(url)
+            mock_resp = AsyncMock()
+            # Return the URL as feed content so feedparser mock can identify which feed
+            mock_resp.text = AsyncMock(return_value=f"<feed>{url}</feed>")
+            mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
+            mock_resp.__aexit__ = AsyncMock(return_value=None)
+            return mock_resp
+
+        mock_session.get = MagicMock(side_effect=create_mock_resp)
+        mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session.__aexit__ = AsyncMock(return_value=None)
+        mock_session._urls_requested = urls_requested  # For debugging
+
+        with patch('aiohttp.ClientSession', return_value=mock_session):
+            return func(self, *args, **kwargs)
+    return wrapper
 
 
 class TestFeedProcessorTestCase(TestCase):
@@ -8,6 +40,7 @@ class TestFeedProcessorTestCase(TestCase):
         self.mock_config = mock.Mock()
         self.mock_config.urls = ["https://example.com/feed"]
     
+    @mock_aiohttp_session
     def test_feed_processor_collect_new_entries(self):
         seen_links = set()
         processor = FeedProcessor(self.mock_config, seen_links)
@@ -19,11 +52,12 @@ class TestFeedProcessorTestCase(TestCase):
 
         with mock.patch('feedparser.parse', return_value=mock_feed):
             result = processor.collect()
-        
+
         self.assertEqual(len(result), 2)
         self.assertEqual(result[0], mock_entry1)
         self.assertEqual(result[1], mock_entry2)
     
+    @mock_aiohttp_session
     def test_feed_processor_filters_seen_entries(self):
         seen_links = {"https://example.com/entry1"}
         processor = FeedProcessor(self.mock_config, seen_links)
@@ -39,6 +73,7 @@ class TestFeedProcessorTestCase(TestCase):
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0], mock_entry2)
     
+    @mock_aiohttp_session
     def test_feed_processor_multiple_feeds(self):
         self.mock_config.urls = ["https://example.com/feed1", "https://example.com/feed2"]
         processor = FeedProcessor(self.mock_config, set())
@@ -46,17 +81,20 @@ class TestFeedProcessorTestCase(TestCase):
         mock_entry1 = mock.Mock(link="https://example.com/entry1", title="Entry 1")
         mock_entry2 = mock.Mock(link="https://example.com/entry2", title="Entry 2")
         
-        def mock_parse(url):
-            if url == "https://example.com/feed1":
+        def mock_parse(content):
+            # Content now contains "<feed>URL</feed>" from aiohttp mock
+            if "feed1" in content:
                 return mock.Mock(
                     entries=[mock_entry1],
                     feed=mock.Mock(title="Feed 1")
                 )
-            else:
+            elif "feed2" in content:
                 return mock.Mock(
                     entries=[mock_entry2],
                     feed=mock.Mock(title="Feed 2")
                 )
+            else:
+                return mock.Mock(entries=[], feed=mock.Mock(title="Unknown"))
 
         with mock.patch('feedparser.parse', side_effect=mock_parse):
             result = processor.collect()
@@ -64,8 +102,11 @@ class TestFeedProcessorTestCase(TestCase):
         self.assertEqual(len(result), 2)
         # Verify context was populated with both feeds
         self.assertEqual(len(processor.context['feeds']), 2)
-        self.assertEqual(processor.context['feeds'][0]['name'], "Feed 1")
-        self.assertEqual(processor.context['feeds'][1]['name'], "Feed 2")
+        # Order is not guaranteed with async, so check both feeds are present
+        feed_names = {feed['name'] for feed in processor.context['feeds']}
+        self.assertEqual(feed_names, {"Feed 1", "Feed 2"})
+        self.assertIn("Feed 1", feed_names)
+        self.assertIn("Feed 2", feed_names)
 
     def test_feed_processor_as_html(self):
         processor = FeedProcessor(mock.Mock(), set())
@@ -187,6 +228,7 @@ class TestFeedProcessorTestCase(TestCase):
         self.assertIn("Feed Updates", text)
         self.assertIn("============", text)
 
+    @mock_aiohttp_session
     def test_feed_processor_zero_links_empty_feed(self):
         """Test that a feed with no entries raises AssertionError and is captured in zero_links"""
         processor = FeedProcessor(self.mock_config, set())
@@ -206,6 +248,7 @@ class TestFeedProcessorTestCase(TestCase):
         # Result should be the zero_links list
         self.assertEqual(result, processor.context['zero_links'])
 
+    @mock_aiohttp_session
     def test_feed_processor_zero_links_exception(self):
         """Test that exceptions during feed parsing are captured in zero_links"""
         processor = FeedProcessor(self.mock_config, set())
@@ -222,6 +265,7 @@ class TestFeedProcessorTestCase(TestCase):
         # Result should be the zero_links list
         self.assertEqual(result, processor.context['zero_links'])
 
+    @mock_aiohttp_session
     def test_feed_processor_mixed_success_and_failures(self):
         """Test that successful feeds and failed feeds are both captured correctly"""
         self.mock_config.urls = [
@@ -234,13 +278,14 @@ class TestFeedProcessorTestCase(TestCase):
         mock_entry1 = mock.Mock(link="https://example.com/entry1", title="Entry 1")
         mock_entry3 = mock.Mock(link="https://example.com/entry3", title="Entry 3")
 
-        def mock_parse(url):
-            if url == "https://example.com/feed1":
+        def mock_parse(content):
+            # Content now contains "<feed>URL</feed>" from aiohttp mock
+            if "feed1" in content:
                 # Successful feed
                 feed = mock.Mock(entries=[mock_entry1])
                 feed.feed = mock.Mock(title="Good Feed")
                 return feed
-            elif url == "https://example.com/feed2":
+            elif "feed2" in content:
                 # Empty feed
                 feed = mock.Mock(entries=[])
                 feed.feed = mock.Mock(title="Empty Feed")
@@ -258,10 +303,12 @@ class TestFeedProcessorTestCase(TestCase):
 
         # Should have 2 zero_links entries (empty feed + exception)
         self.assertEqual(len(processor.context['zero_links']), 2)
-        self.assertIn("feed2", processor.context['zero_links'][0])
-        self.assertIn("No links found in feed", processor.context['zero_links'][0])
-        self.assertIn("feed3", processor.context['zero_links'][1])
-        self.assertIn("Network error", processor.context['zero_links'][1])
+        # Don't check order since async may complete in any order
+        zero_links_str = ' '.join(processor.context['zero_links'])
+        self.assertIn("feed2", zero_links_str)
+        self.assertIn("No links found in feed", zero_links_str)
+        self.assertIn("feed3", zero_links_str)
+        self.assertIn("Network error", zero_links_str)
 
         # Should have 1 feed in context
         self.assertEqual(len(processor.context['feeds']), 1)
@@ -270,6 +317,7 @@ class TestFeedProcessorTestCase(TestCase):
         # Result should be found entries (not zero_links) since we have entries
         self.assertEqual(result, processor.found)
 
+    @mock_aiohttp_session
     def test_feed_processor_all_feeds_fail(self):
         """Test behavior when all feeds fail"""
         self.mock_config.urls = [
@@ -301,6 +349,7 @@ class TestFeedProcessorTestCase(TestCase):
         self.assertEqual(result, processor.context['zero_links'])
         self.assertIsInstance(result, list)
 
+    @mock_aiohttp_session
     def test_feed_processor_zero_links_all_entries_seen(self):
         """Test that feeds with all seen entries are skipped without adding to zero_links"""
         seen_links = {"https://example.com/entry1", "https://example.com/entry2"}
