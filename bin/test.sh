@@ -1,3 +1,7 @@
 #!/usr/bin/env bash
 
-python -m unittest discover -s feedmailer.tests -p "test_*.py"
+if [[ -z "$@" ]]; then
+  python -m unittest discover -s "$TEST_MATCH" -p "*.py"
+else
+  python -m unittest "$@"
+fi
