@@ -229,9 +229,7 @@ class TestFeedProcessorTestCase(TestCase):
         # Should return zero_links list since no entries found
         self.assertEqual(len(processor.found), 0)
         self.assertEqual(len(processor.context["zero_links"]), 1)
-        self.assertIn(
-            "https[:]//example[.]com/feed", processor.context["zero_links"][0]
-        )
+        self.assertIn("[https://example.com/feed]", processor.context["zero_links"][0])
         self.assertIn("No links found in feed", processor.context["zero_links"][0])
         # Result should be the zero_links list
         self.assertEqual(result, processor.context["zero_links"])
@@ -250,9 +248,7 @@ class TestFeedProcessorTestCase(TestCase):
         # Should capture the exception in zero_links
         self.assertEqual(len(processor.found), 0)
         self.assertEqual(len(processor.context["zero_links"]), 1)
-        self.assertIn(
-            "https[:]//example[.]com/feed", processor.context["zero_links"][0]
-        )
+        self.assertIn("[https://example.com/feed]", processor.context["zero_links"][0])
         self.assertIn("Connection timeout", processor.context["zero_links"][0])
         # Result should be the zero_links list
         self.assertEqual(result, processor.context["zero_links"])

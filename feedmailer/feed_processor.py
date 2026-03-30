@@ -55,8 +55,9 @@ class FeedProcessor:
                 continue
             elif "error" in result:
                 # Error occurred
-                escaped_url = result["url"].replace(".", "[.]").replace(":", "[:]")
-                self.context["zero_links"].append(f"{escaped_url}: {result['error']}")
+                self.context["zero_links"].append(
+                    f"[{result['url']}]: {result['error']}"
+                )
             else:
                 # Success
                 self.found.extend(result["entries"])
