@@ -380,8 +380,12 @@ class TestFeedProcessorTestCase(TestCase):
         self.assertIn("<h3>Good Feed</h3>", html)
         self.assertIn('<a href="https://example.com/1">Entry 1</a>', html)
         self.assertIn("<h4>Zero links</h4>", html)
-        self.assertIn("https://bad.com/feed1: Connection timeout", html)
-        self.assertIn("https://bad.com/feed2: No links found in feed", html)
+        self.assertIn(
+            "https&colon;//bad&period;com/feed1&colon; Connection timeout", html
+        )
+        self.assertIn(
+            "https&colon;//bad&period;com/feed2&colon; No links found in feed", html
+        )
 
     def test_feed_processor_as_text_with_zero_links(self):
         """Test that zero_links appear in text template"""
@@ -414,8 +418,10 @@ class TestFeedProcessorTestCase(TestCase):
         # Verify structure with only zero_links
         self.assertIn("<h1>Feed Updates</h1>", html)
         self.assertIn("<h4>Zero links</h4>", html)
-        self.assertIn("https://feed1.com: Parse error", html)
-        self.assertIn("https://feed2.com: No links found in feed", html)
+        self.assertIn("https&colon;//feed1&period;com&colon; Parse error", html)
+        self.assertIn(
+            "https&colon;//feed2&period;com&colon; No links found in feed", html
+        )
 
     def test_feed_processor_as_text_only_zero_links(self):
         """Test text template with only zero_links (no successful feeds)"""

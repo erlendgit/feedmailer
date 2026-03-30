@@ -1,9 +1,9 @@
 import asyncio
-import os
 
 import aiohttp
 import feedparser
-from jinja2 import Environment, FileSystemLoader, select_autoescape
+
+from feedmailer.utils.jinja import create_jinja_environment
 
 
 class FeedProcessor:
@@ -14,11 +14,7 @@ class FeedProcessor:
         self.context = {"feeds": [], "zero_links": []}
 
         # Setup Jinja2 environment
-        template_dir = os.path.join(os.path.dirname(__file__), "templates")
-        self.jinja_env = Environment(
-            loader=FileSystemLoader(template_dir),
-            autoescape=select_autoescape(["html", "xml"]),
-        )
+        self.jinja_env = create_jinja_environment()
 
     async def _fetch_feed(self, session, url):
         """Fetch and parse a single feed asynchronously."""
